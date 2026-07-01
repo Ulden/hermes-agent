@@ -130,6 +130,14 @@ class TestCLIQuickCommands:
 
 
 # ── Gateway tests ──────────────────────────────────────────────────────────
+# NOTE: These tests import gateway.run.GatewayRunner which was removed in the
+# lite version. They are skipped when the gateway module is not available.
+
+try:
+    from gateway.run import GatewayRunner as _GatewayRunner
+except (ImportError, ModuleNotFoundError):
+    _GatewayRunner = None
+
 
 class TestGatewayQuickCommands:
     """Test quick command dispatch in GatewayRunner._handle_message."""
@@ -149,8 +157,9 @@ class TestGatewayQuickCommands:
 
     @pytest.mark.asyncio
     async def test_exec_command_returns_output(self):
-        from gateway.run import GatewayRunner
-        runner = GatewayRunner.__new__(GatewayRunner)
+        if _GatewayRunner is None:
+            pytest.skip("GatewayRunner not available in lite version")
+        runner = _GatewayRunner.__new__(_GatewayRunner)
         runner.config = {"quick_commands": {"limits": {"type": "exec", "command": "echo ok"}}}
         runner._running_agents = {}
         runner._pending_messages = {}
@@ -163,9 +172,9 @@ class TestGatewayQuickCommands:
     @pytest.mark.asyncio
     async def test_exec_command_does_not_leak_credentials(self):
         """Quick command exec must sanitize env — API keys must not appear in output."""
-        from gateway.run import GatewayRunner
-
-        runner = GatewayRunner.__new__(GatewayRunner)
+        if _GatewayRunner is None:
+            pytest.skip("GatewayRunner not available in lite version")
+        runner = _GatewayRunner.__new__(_GatewayRunner)
         runner.config = {"quick_commands": {"leak": {"type": "exec", "command": "env"}}}
         runner._running_agents = {}
         runner._pending_messages = {}
@@ -181,13 +190,14 @@ class TestGatewayQuickCommands:
     @pytest.mark.asyncio
     async def test_exec_command_output_is_redacted(self, monkeypatch):
         """Quick command output must redact sensitive patterns before returning."""
-        from gateway.run import GatewayRunner
+        if _GatewayRunner is None:
+            pytest.skip("GatewayRunner not available in lite version")
 
         # Ensure redaction is active regardless of host HERMES_REDACT_SECRETS state
         # or test ordering
         monkeypatch.setattr("agent.redact._REDACT_ENABLED", True)
 
-        runner = GatewayRunner.__new__(GatewayRunner)
+        runner = _GatewayRunner.__new__(_GatewayRunner)
         runner.config = {"quick_commands": {"token": {"type": "exec", "command": "echo sk-ant-api03-supersecretkey1234567890"}}}
         runner._running_agents = {}
         runner._pending_messages = {}
@@ -201,8 +211,9 @@ class TestGatewayQuickCommands:
 
     @pytest.mark.asyncio
     async def test_unsupported_type_returns_error(self):
-        from gateway.run import GatewayRunner
-        runner = GatewayRunner.__new__(GatewayRunner)
+        if _GatewayRunner is None:
+            pytest.skip("GatewayRunner not available in lite version")
+        runner = _GatewayRunner.__new__(_GatewayRunner)
         runner.config = {"quick_commands": {"bad": {"type": "prompt", "command": "echo hi"}}}
         runner._running_agents = {}
         runner._pending_messages = {}
@@ -215,9 +226,10 @@ class TestGatewayQuickCommands:
 
     @pytest.mark.asyncio
     async def test_timeout_returns_error(self):
-        from gateway.run import GatewayRunner
+        if _GatewayRunner is None:
+            pytest.skip("GatewayRunner not available in lite version")
         import asyncio
-        runner = GatewayRunner.__new__(GatewayRunner)
+        runner = _GatewayRunner.__new__(_GatewayRunner)
         runner.config = {"quick_commands": {"slow": {"type": "exec", "command": "sleep 100"}}}
         runner._running_agents = {}
         runner._pending_messages = {}
@@ -231,10 +243,11 @@ class TestGatewayQuickCommands:
 
     @pytest.mark.asyncio
     async def test_gateway_config_object_supports_quick_commands(self):
+        if _GatewayRunner is None:
+            pytest.skip("GatewayRunner not available in lite version")
         from gateway.config import GatewayConfig
-        from gateway.run import GatewayRunner
 
-        runner = GatewayRunner.__new__(GatewayRunner)
+        runner = _GatewayRunner.__new__(_GatewayRunner)
         runner.config = GatewayConfig(
             quick_commands={"limits": {"type": "exec", "command": "echo ok"}}
         )

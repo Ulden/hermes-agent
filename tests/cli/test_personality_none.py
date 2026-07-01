@@ -71,6 +71,17 @@ class TestCLIPersonalityNone:
 
 
 # ── Gateway tests ──────────────────────────────────────────────────────────
+# NOTE: These tests import gateway.run.GatewayRunner which was removed in the
+# lite version. They are skipped when the gateway module is not available.
+
+import importlib
+
+try:
+    _gateway_run = importlib.import_module("gateway.run")
+    _GatewayRunner = _gateway_run.GatewayRunner
+except (ImportError, ModuleNotFoundError):
+    _GatewayRunner = None
+
 
 class TestGatewayPersonalityNone:
 
@@ -81,8 +92,9 @@ class TestGatewayPersonalityNone:
         return event
 
     def _make_runner(self, personalities=None):
-        from gateway.run import GatewayRunner
-        runner = GatewayRunner.__new__(GatewayRunner)
+        if _GatewayRunner is None:
+            pytest.skip("GatewayRunner not available in lite version")
+        runner = _GatewayRunner.__new__(_GatewayRunner)
         runner._ephemeral_system_prompt = "You are kawaii~"
         runner.config = {
             "agent": {
