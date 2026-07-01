@@ -1010,7 +1010,7 @@ def _emit_approval_request(sid: str, data: dict | None) -> None:
     seam so all approval transports redact consistently."""
     payload = dict(data or {})
     if "command" in payload:
-        from gateway.run import _redact_approval_command
+        from gateway.session_context import _redact_approval_command
 
         payload["command"] = _redact_approval_command(payload.get("command"))
     _emit("approval.request", sid, payload)
