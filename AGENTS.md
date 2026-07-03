@@ -236,6 +236,25 @@ source .venv/bin/activate   # or: source venv/bin/activate
 `$HOME/.hermes/hermes-agent/venv` (for worktrees that share a venv with the
 main checkout).
 
+## Upstream Sync Workflow
+
+This repo tracks [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
+as upstream. See `LITE_MAINTENANCE.md` for the full sync workflow, including:
+
+- What was removed vs. kept in the lite fork
+- How to sync upstream changes with `./scripts/sync_upstream.sh`
+- How to resolve merge conflicts for lite-specific files
+- Testing after sync
+
+**Quick sync:**
+```bash
+# Preview
+./scripts/sync_upstream.sh --dry-run
+
+# Apply
+./scripts/sync_upstream.sh
+```
+
 ## Project Structure
 
 File counts shift constantly — don't treat the tree below as exhaustive.
