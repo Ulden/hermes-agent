@@ -1,17 +1,35 @@
-# Hermes Agent - Development Guide
+# Hermes Lite - Development Guide
 
-Instructions for AI coding assistants and developers working on the hermes-agent codebase.
+Instructions for AI coding assistants and developers working on the hermes-lite codebase.
+
+**This is a lite fork of [Hermes Agent](https://github.com/NousResearch/hermes-agent)** —
+it removes all multi-platform messaging gateway code, keeping only local CLI and TUI interfaces.
+See `LITE_MAINTENANCE.md` for upstream sync workflow.
 
 **Never give up on the right solution.**
 
-## What Hermes Is
+## What Hermes Lite Is
 
-Hermes is a personal AI agent that runs the same agent core across a CLI, a
-messaging gateway (Telegram, Discord, Slack, and ~20 other platforms), a TUI,
-and an Electron desktop app. It learns across sessions (memory + skills),
-delegates to subagents, runs scheduled jobs, and drives a real terminal and
-browser. It is extended primarily through **plugins and skills**, not by
-growing the core.
+Hermes Lite is a lightweight fork of Hermes Agent that runs the same agent core
+across a CLI and a TUI. It learns across sessions (memory + skills), delegates to
+subagents, runs scheduled jobs, and drives a real terminal and browser. It is
+extended primarily through **plugins and skills**, not by growing the core.
+
+**Compared to upstream Hermes Agent, this fork removes:**
+- Multi-platform messaging gateway (Telegram, Discord, Slack, WhatsApp, etc.)
+- Electron desktop app (`apps/desktop/`)
+- Web dashboard (`web/`)
+- Optional skills (`optional-skills/`)
+
+**What is kept:**
+- Core agent (`run_agent.py`) — AI conversation loop
+- CLI (`cli.py`, `hermes_cli/`) — Interactive CLI with all features
+- TUI (`ui-tui/`, `tui_gateway/`) — Ink-based terminal UI
+- Tools (`tools/`) — All core tools
+- Skills (`skills/`) — Built-in skills
+- Plugins (`plugins/`) — Plugin system (minus platform adapters)
+- Cron scheduler (`cron/`) — Scheduled jobs
+- Memory providers — honcho, mem0, etc.
 
 Two properties shape almost every design decision and are the lens for
 reviewing any change:
@@ -40,14 +58,13 @@ This is the project's intent layer. Use it two ways:
    job here is to recognize design intent and *avoid wrongly closing a
    legitimate contribution*, not to make the won't-implement call itself.
 
-Read the balance right: Hermes ships a **lot** — most merges are bug fixes to
-real reported behavior, and the product surface (platforms, channels,
-providers, models, desktop/TUI features) expands aggressively and on purpose.
-The restraint below is aimed squarely at the **core agent + the model tool
-schema**, the one place where every addition is paid for on every API call.
-"Smallest footprint" governs *how a capability is wired into the core*, NOT
-whether the product is allowed to grow. We are expansive at the edges and
-conservative at the waist.
+Read the balance right: Hermes Lite ships a **lot** — most merges are bug fixes to
+real reported behavior, and the product surface (providers, models, TUI features) 
+expands aggressively and on purpose. The restraint below is aimed squarely at the 
+**core agent + the model tool schema**, the one place where every addition is paid 
+for on every API call. "Smallest footprint" governs *how a capability is wired into 
+the core*, NOT whether the product is allowed to grow. We are expansive at the edges 
+and conservative at the waist.
 
 ### What we want
 
@@ -55,19 +72,17 @@ conservative at the waist.
   actual reported symptom. A good fix reproduces the symptom on current
   `main`, points to the exact line where it manifests, and fixes the whole bug
   class — sibling call paths included — not just the one site the reporter hit.
-- **Expand reach at the edges.** New platform adapters, channels, providers,
-  models, and desktop/TUI/dashboard features are welcome and land routinely,
-  including large ones (a new messaging channel, a session-cap feature, a
+- **Expand reach at the edges.** New providers, models, and TUI features are
+  welcome and land routinely, including large ones (a session-cap feature, a
   Windows PTY bridge). Breadth in the product is a goal, not a footprint
   concern — as long as it integrates with the existing setup/config UX
   (`hermes tools`, `hermes setup`, auto-install) rather than bolting on a raw
   env var.
 - **Refactor god-files into clean modules.** Extracting a multi-thousand-line
-  cluster out of `cli.py` / `run_agent.py` / `gateway/run.py` into a focused
-  mixin or module is wanted work, even when the diff is huge and mechanical
-  (large `+N/-N` refactors merge regularly). The "every line traces to the
-  request" test applies to *feature* PRs; a declared refactor's request IS the
-  extraction.
+  cluster out of `cli.py` / `run_agent.py` into a focused mixin or module is 
+  wanted work, even when the diff is huge and mechanical (large `+N/-N` 
+  refactors merge regularly). The "every line traces to the request" test 
+  applies to *feature* PRs; a declared refactor's request IS the extraction.
 - **Keep the core narrow.** New *model tools* are the expensive exception —
   every tool ships on every API call. Prefer, in order: extend existing code →
   CLI command + skill → service-gated tool (`check_fn`) → plugin → MCP server
@@ -241,12 +256,7 @@ hermes-agent/
 ├── hermes_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
 ├── tools/                # Tool implementations — auto-discovered via tools/registry.py
 │   └── environments/     # Terminal backends (local, docker, ssh, modal, daytona, singularity)
-├── gateway/              # Messaging gateway — run.py + session.py + platforms/
-│   ├── platforms/        # Adapter per platform (telegram, discord, slack, whatsapp,
-│   │                     #   homeassistant, signal, matrix, mattermost, email, sms,
-│   │                     #   dingtalk, wecom, weixin, feishu, qqbot, bluebubbles,
-│   │                     #   yuanbao, webhook, api_server, ...). See ADDING_A_PLATFORM.md.
-│   └── builtin_hooks/    # Extension point for always-registered gateway hooks (none shipped)
+├── gateway/              # Messaging gateway — session context and config only (lite version)
 ├── plugins/              # Plugin system (see "Plugins" section below)
 │   ├── memory/           # Memory-provider plugins (honcho, mem0, supermemory, ...)
 │   ├── context_engine/   # Context-engine plugins
@@ -257,7 +267,6 @@ hermes-agent/
 │   ├── image_gen/        # Image-generation providers
 │   └── <others>/         # disk-cleanup, google_meet, platforms, spotify,
 │                         #   strike-freedom-cockpit, ...
-├── optional-skills/      # Heavier/niche skills shipped but NOT active by default
 ├── skills/               # Built-in skills bundled with the repo
 ├── ui-tui/               # Ink (React) terminal UI — `hermes --tui`
 │   └── src/              # entry.tsx, app.tsx, gatewayClient.ts + app/components/hooks/lib
@@ -385,10 +394,6 @@ Reasoning content is stored in `assistant_msg["reasoning"]`.
 All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandDef` objects. Every downstream consumer derives from this registry automatically:
 
 - **CLI** — `process_command()` resolves aliases via `resolve_command()`, dispatches on canonical name
-- **Gateway** — `GATEWAY_KNOWN_COMMANDS` frozenset for hook emission, `resolve_command()` for dispatch
-- **Gateway help** — `gateway_help_lines()` generates `/help` output
-- **Telegram** — `telegram_bot_commands()` generates the BotCommand menu
-- **Slack** — `slack_subcommand_map()` generates `/hermes` subcommand routing
 - **Autocomplete** — `COMMANDS` flat dict feeds `SlashCommandCompleter`
 - **CLI help** — `COMMANDS_BY_CATEGORY` dict feeds `show_help()`
 
@@ -404,12 +409,7 @@ CommandDef("mycommand", "Description of what it does", "Session",
 elif canonical == "mycommand":
     self._handle_mycommand(cmd_original)
 ```
-3. If the command is available in the gateway, add a handler in `gateway/run.py`:
-```python
-if canonical == "mycommand":
-    return await self._handle_mycommand(event)
-```
-4. For persistent settings, use `save_config_value()` in `cli.py`
+3. For persistent settings, use `save_config_value()` in `cli.py`
 
 **CommandDef fields:**
 - `name` — canonical name without slash (e.g. `"background"`)
@@ -418,10 +418,8 @@ if canonical == "mycommand":
 - `aliases` — tuple of alternative names (e.g. `("bg",)`)
 - `args_hint` — argument placeholder shown in help (e.g. `"<prompt>"`, `"[name]"`)
 - `cli_only` — only available in the interactive CLI
-- `gateway_only` — only available in messaging platforms
-- `gateway_config_gate` — config dotpath (e.g. `"display.tool_progress_command"`); when set on a `cli_only` command, the command becomes available in the gateway if the config value is truthy. `GATEWAY_KNOWN_COMMANDS` always includes config-gated commands so the gateway can dispatch them; help/menus only show them when the gate is open.
 
-**Adding an alias** requires only adding it to the `aliases` tuple on the existing `CommandDef`. No other file changes needed — dispatch, help text, Telegram menu, Slack mapping, and autocomplete all update automatically.
+**Adding an alias** requires only adding it to the `aliases` tuple on the existing `CommandDef`. No other file changes needed — dispatch, help text, and autocomplete all update automatically.
 
 ---
 
@@ -478,10 +476,9 @@ npm test          # vitest
 
 ### TUI in the Dashboard (`hermes dashboard` → `/chat`)
 
-The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `hermes_cli/web_server.py`.
+The dashboard embeds the real `hermes --tui` — **not** a rewrite. See `hermes_cli/pty_bridge.py` + the WebSocket endpoint in `hermes_cli/web_server.py`.
 
-- Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
-- `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
+- Browser loads the chat page, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
 - The server spawns whatever `hermes --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
 - Frames: raw PTY bytes each direction; resize via `\x1b[RESIZE:<cols>;<rows>]` intercepted on the server and applied with `TIOCSWINSZ`.
 
@@ -490,6 +487,10 @@ The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes
 **Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
 
 ### Electron Desktop Chat App (`apps/desktop/`)
+
+> **Note:** The Electron desktop app is not included in Hermes Lite. This section is
+> preserved for reference when working with upstream code that references desktop
+> components.
 
 A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@hermes/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `hermes serve` backend server (the same gateway `dashboard` serves, minus the browser UI). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.cjs` + `backendSupportsServe()` in `main.cjs`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `hermes` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `hermes --tui` — it has its own composer, transcript, and slash-command pipeline. Route desktop bugs to the `hermes-desktop-app-work` skill, not `hermes-dashboard-work`.
 
@@ -777,7 +778,7 @@ provider (read from `memory.provider` in config.yaml), so disabled
 providers don't clutter `hermes --help`.
 
 **Rule (Teknium, May 2026):** plugins MUST NOT modify core files
-(`run_agent.py`, `cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.).
+(`run_agent.py`, `cli.py`, `hermes_cli/main.py`, etc.).
 If a plugin needs a capability the framework doesn't expose, expand the
 generic plugin surface (new hook, new ctx method) — never hardcode
 plugin-specific logic into core. PR #5295 removed 95 lines of hardcoded
@@ -856,16 +857,9 @@ Two parallel surfaces:
 
 - **`skills/`** — built-in skills shipped and loadable by default.
   Organized by category directories (e.g. `skills/github/`, `skills/mlops/`).
-- **`optional-skills/`** — heavier or niche skills shipped with the repo but
-  NOT active by default. Installed explicitly via
-  `hermes skills install official/<category>/<skill>`. Adapter lives in
-  `tools/skills_hub.py` (`OptionalSkillSource`). Categories include
-  `autonomous-ai-agents`, `blockchain`, `communication`, `creative`,
-  `devops`, `email`, `health`, `mcp`, `migration`, `mlops`, `productivity`,
-  `research`, `security`, `web-development`.
 
 When reviewing skill PRs, check which directory they target — heavy-dep or
-niche skills belong in `optional-skills/`.
+niche skills may need special handling for the lite version.
 
 ### SKILL.md frontmatter
 
@@ -969,10 +963,9 @@ Each platform's adapter picks a base toolset (e.g. Telegram uses
 platforms inherit from.
 
 Current toolset keys: `browser`, `clarify`, `code_execution`, `cronjob`,
-`debugging`, `delegation`, `discord`, `discord_admin`, `feishu_doc`,
-`feishu_drive`, `file`, `homeassistant`, `image_gen`, `kanban`, `memory`,
-`messaging`, `moa`, `rl`, `safe`, `search`, `session_search`, `skills`,
-`spotify`, `terminal`, `todo`, `tts`, `video`, `vision`, `web`, `yuanbao`.
+`debugging`, `delegation`, `file`, `homeassistant`, `image_gen`, `kanban`, `memory`,
+`moa`, `safe`, `search`, `session_search`, `skills`,
+`terminal`, `todo`, `tts`, `video`, `vision`, `web`.
 
 Enable/disable per platform via `hermes tools` (the curses UI) or the
 `tools.<platform>.enabled` / `tools.<platform>.disabled` lists in
@@ -1141,7 +1134,7 @@ must be **cache-aware**: default to deferred invalidation (change takes
 effect next session), with an opt-in `--now` flag for immediate
 invalidation. See `/skills install --now` for the canonical pattern.
 
-### Background Process Notifications (Gateway)
+### Background Process Notifications
 
 When `terminal(background=true, notify_on_complete=true)` is used, the gateway runs a watcher that
 detects process completion and triggers a new agent turn. Control verbosity of background process
@@ -1206,6 +1199,10 @@ automatically scope to the active profile.
    `disconnect()`/`stop()`. This prevents two profiles from using the same credential.
    See `plugins/platforms/irc/adapter.py` for the canonical pattern.
 
+   > **Note:** This applies to the upstream Hermes Agent. In Hermes Lite, gateway
+   > platform adapters are not included. The stub `gateway/` module retains only
+   > config and session context utilities.
+
 6. **Profile operations are HOME-anchored, not HERMES_HOME-anchored** — `_get_profiles_root()`
    returns `Path.home() / ".hermes" / "profiles"`, NOT `get_hermes_home() / "profiles"`.
    This is intentional — it lets `hermes -p coder profile list` see all profiles regardless
@@ -1235,6 +1232,10 @@ Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-p
 Tool schema descriptions must not mention tools from other toolsets by name (e.g., `browser_navigate` saying "prefer web_search"). Those tools may be unavailable (missing API keys, disabled toolset), causing the model to hallucinate calls to non-existent tools. If a cross-reference is needed, add it dynamically in `get_tool_definitions()` in `model_tools.py` — see the `browser_navigate` / `execute_code` post-processing blocks for the pattern.
 
 ### The gateway has TWO message guards — both must bypass approval/control commands
+
+> **Note:** This applies to the upstream Hermes Agent. In Hermes Lite, the gateway
+> runner is not included.
+
 When an agent is running, messages pass through two sequential guards:
 (1) **base adapter** (`gateway/platforms/base.py`) queues messages in
 `_pending_messages` when `session_key in self._active_sessions`, and
