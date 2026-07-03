@@ -40,6 +40,11 @@ Some modules are kept as stubs to prevent import errors:
 
 ## Sync Workflow
 
+> **Golden Rule:** During sync, **local (lite) version wins** for all lite-specific files.
+> The sync script and manual steps below re-apply removals automatically, but if you
+> resolve conflicts manually, always prefer the local version for files listed in
+> [Files That MUST Keep Local (Lite) Version](#files-that-must-keep-local-lite-version).
+
 ### Quick Start
 
 ```bash
@@ -135,6 +140,30 @@ git checkout --ours README.md
 
 # For gateway/: keep stub versions
 git checkout --ours gateway/
+```
+
+### Files That MUST Keep Local (Lite) Version
+
+These files are intentionally different from upstream. **Always resolve conflicts in their favor:**
+
+| File | Why Local Wins | What to Check |
+|------|----------------|---------------|
+| `pyproject.toml` | Package name is `hermes-lite`, not `hermes-agent` | `name = "hermes-lite"` |
+| `README.md` | Lite-specific description and "removed features" table | Contains "Hermes Lite" |
+| `AGENTS.md` | Lite-specific development guide | Title is "Hermes Lite" |
+| `gateway/__init__.py` | Stub version (upstream has full gateway) | Contains "lite version" |
+| `hermes_cli/gateway.py` | Stub version | Contains "not available in lite" |
+| `hermes_cli/gateway_windows.py` | Stub version | Contains "not available in lite" |
+| `.gitignore` | May have lite-specific ignores | Check for `apps/desktop/`, `web/` |
+
+**Quick check after resolving conflicts:**
+
+```bash
+# Verify critical files still reflect lite version
+grep 'name = "hermes-lite"' pyproject.toml || echo "ERROR: Lost lite package name"
+grep -qi "hermes lite" README.md || echo "ERROR: Lost lite README description"
+grep -qi "hermes lite" AGENTS.md || echo "ERROR: Lost lite AGENTS description"
+head -5 gateway/__init__.py | grep -qi "lite" || echo "ERROR: gateway/__init__.py may be full version"
 ```
 
 ### Tests Failing After Sync
