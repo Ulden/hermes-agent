@@ -158,6 +158,39 @@ Use this decision tree:
 - Use `git diff upstream/main..HEAD -- <file>` to see what lite changed vs upstream
 - Ask: "Does this change relate to a removed component?" If yes, likely keep local or delete
 
+#### When Upstream Modifies Deleted Files
+
+Upstream may add new features to files that were deleted in lite. Before deleting:
+
+```bash
+# See what upstream changed in a file we deleted
+git diff HEAD..upstream/main -- path/to/deleted/file.py
+```
+
+**Decision:**
+
+| What upstream added | Action | Example |
+|---------------------|--------|---------|
+| Bug fix or improvement **independent** of removed component | Port the fix to an equivalent file in lite | Utility function extracted from gateway adapter → move to `agent/utils.py` |
+| New feature **tightly coupled** to removed component | Skip it | New Telegram webhook handler → not applicable in lite |
+| Refactor that **simplifies** the deleted code | Check if the simplification applies to stub version | Gateway init cleanup → may apply to `gateway/__init__.py` stub |
+| Test for removed component | Skip it | `tests/gateway/test_telegram.py` |
+
+**How to port a fix from deleted file:**
+
+```bash
+# 1. See the upstream diff
+git diff HEAD..upstream/main -- gateway/platforms/base.py
+
+# 2. If the fix is a general utility (not platform-specific), find where lite keeps it:
+#    - Common utilities → agent/utils.py or tools/common.py
+#    - CLI-related → hermes_cli/
+#    - Agent core → run_agent.py or agent/
+
+# 3. Apply the fix manually, adapting imports if needed
+# 4. Test: scripts/run_tests.sh
+```
+
 ### Files That MUST Keep Local (Lite) Version
 
 These files are intentionally different from upstream. **Always resolve conflicts in their favor:**
