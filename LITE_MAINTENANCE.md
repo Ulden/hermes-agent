@@ -142,6 +142,22 @@ git checkout --ours README.md
 git checkout --ours gateway/
 ```
 
+**Important:** The above is a quick-start for the most common cases. In practice,
+**most files should be reviewed individually** rather than blindly accepting one side.
+Use this decision tree:
+
+| Situation | Action | Example |
+|-----------|--------|---------|
+| File is **lite-specific** (stub, renamed, or lite-only) | Keep local (`--ours`) | `gateway/__init__.py`, `AGENTS.md` |
+| File is **upstream core code** with no lite changes | Keep upstream (`--theirs`) | `run_agent.py`, `model_tools.py` |
+| File has **both upstream updates AND lite changes** | Merge manually, keeping both | `pyproject.toml` (new deps + lite name) |
+| File is **removed in lite** but modified upstream | Delete it | `gateway/run.py`, `apps/desktop/*` |
+
+**When in doubt:**
+- Check `git log --oneline --grep="lite"` for the original lite conversion commit to see what was changed
+- Use `git diff upstream/main..HEAD -- <file>` to see what lite changed vs upstream
+- Ask: "Does this change relate to a removed component?" If yes, likely keep local or delete
+
 ### Files That MUST Keep Local (Lite) Version
 
 These files are intentionally different from upstream. **Always resolve conflicts in their favor:**
