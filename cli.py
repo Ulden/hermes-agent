@@ -15614,10 +15614,18 @@ def main(
     
     # Handle gateway mode (messaging + cron)
     if gateway:
-        import asyncio
-        from gateway.run import start_gateway
-        print("Starting Hermes Gateway (messaging platforms)...")
-        asyncio.run(start_gateway())
+        try:
+            import asyncio
+            from gateway.run import start_gateway
+            print("Starting Hermes Gateway (messaging platforms)...")
+            asyncio.run(start_gateway())
+        except ImportError:
+            print(
+                "The '--gateway' mode is not available in the Hermes Lite version.\n"
+                "The lite version only supports local CLI and TUI interfaces.\n"
+                "To enable messaging platforms, use the full Hermes Agent.",
+                file=sys.stderr,
+            )
         return
 
     # Skip worktree for list commands (they exit immediately)

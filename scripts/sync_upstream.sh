@@ -157,8 +157,9 @@ REMOVE_DIRS=(
     "gateway/session.py"
     "gateway/platforms"
     "gateway/relay"
-    "gateway/builtin_hooks"
-    "optional-skills"
+   "gateway/builtin_hooks"
+    "plugins/platforms"
+   "optional-skills"
     "tests/gateway"
     "tests/e2e"
 )
