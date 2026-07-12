@@ -210,6 +210,8 @@ class TestGatewayBridgeCodeParity:
         # Path.read_text() defaults to the system locale — which is cp1252
         # on most Western Windows installs and crashes as soon as the file
         # contains any non-ASCII byte (e.g. an em-dash in a comment).
+        if not gateway_path.exists():
+            pytest.skip("gateway/run.py not available in Hermes Lite")
         content = gateway_path.read_text(encoding="utf-8")
         # Dynamic env-var derivation present
         assert 'f"AUXILIARY_{_upper}_PROVIDER"' in content
@@ -229,6 +231,8 @@ class TestGatewayBridgeCodeParity:
         gateway_path = Path(__file__).parent.parent.parent / "gateway" / "run.py"
         # See note in test_gateway_has_auxiliary_bridge — pin UTF-8 so the
         # test runs on Windows where the default locale is cp1252.
+        if not gateway_path.exists():
+            pytest.skip("gateway/run.py not available in Hermes Lite")
         content = gateway_path.read_text(encoding="utf-8")
         assert "CONTEXT_COMPRESSION_PROVIDER" not in content
         assert "CONTEXT_COMPRESSION_MODEL" not in content

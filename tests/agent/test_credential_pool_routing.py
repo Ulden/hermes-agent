@@ -9,6 +9,7 @@ Covers:
 """
 
 from types import SimpleNamespace
+import pytest
 from unittest.mock import MagicMock, patch
 
 
@@ -46,8 +47,10 @@ class TestCliTurnRoutePool:
 class TestGatewayTurnRoutePool:
     def test_resolve_turn_includes_pool(self):
         """Gateway's _resolve_turn_agent_config must pass credential_pool."""
-        from gateway.run import GatewayRunner
-
+        try:
+            from gateway.run import GatewayRunner
+        except ImportError:
+            pytest.skip("gateway.run not available in Hermes Lite")
         fake_pool = MagicMock(name="FakePool")
         runner = SimpleNamespace(_service_tier=None)
         runtime_kwargs = {

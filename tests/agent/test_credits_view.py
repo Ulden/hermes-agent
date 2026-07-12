@@ -140,8 +140,10 @@ class _FakeEvent:
 
 def _make_gateway_stub():
     """Minimal object exposing the mixin's _handle_credits_command."""
-    from gateway.slash_commands import GatewaySlashCommandsMixin
-
+    try:
+        from gateway.slash_commands import GatewaySlashCommandsMixin
+    except ImportError:
+        pytest.skip("gateway.slash_commands not available in Hermes Lite")
     class _Stub(GatewaySlashCommandsMixin):
         def __init__(self):
             pass

@@ -256,7 +256,10 @@ class TestListPendingLock:
         """Source-grep contract: ``list_pending`` body must be wrapped
         in ``with self._lock:``. If anyone unwraps it again, the TOCTOU
         bug returns."""
-        import gateway.pairing as _pairing_mod
+        try:
+            import gateway.pairing as _pairing_mod
+        except ImportError:
+            pytest.skip("gateway.pairing not available in Hermes Lite")
         source = Path(_pairing_mod.__file__).read_text(encoding="utf-8")
         # Find the list_pending function body and assert the lock
         # context manager appears inside it. We grep the function
@@ -283,7 +286,10 @@ class TestListPendingLock:
 
     def test_list_pending_returns_correct_data(self, tmp_path):
         """End-to-end smoke: even with the lock held, basic operation works."""
-        from gateway.pairing import PairingStore
+        try:
+            from gateway.pairing import PairingStore
+        except ImportError:
+            pytest.skip("gateway.pairing not available in Hermes Lite")
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             store.generate_code("telegram", "user1", "Alice")

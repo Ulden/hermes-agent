@@ -41,8 +41,10 @@ def _seed(home, managed, *, user, mgd):
 def test_gateway_run_loader_honors_managed(homes, monkeypatch):
     home, managed = homes
     _seed(home, managed, user="model:\n  default: user/m\n", mgd="model:\n  default: org/m\n")
-    import gateway.run as gr
-
+    try:
+        import gateway.run as gr
+    except ImportError:
+        pytest.skip("gateway.run not available in Hermes Lite")
     monkeypatch.setattr(gr, "_hermes_home", home, raising=False)
     cfg = gr._load_gateway_config()
     assert (cfg.get("model") or {}).get("default") == "org/m"

@@ -1,6 +1,7 @@
 """Tests for the dangerous command approval module."""
 
 import ast
+import pytest
 import os
 import tempfile
 import threading
@@ -347,6 +348,8 @@ class TestSessionKeyContext:
 
     def test_gateway_runner_binds_session_key_to_context_before_agent_run(self):
         run_py = Path(__file__).resolve().parents[2] / "gateway" / "run.py"
+        if not run_py.exists():
+            pytest.skip("gateway/run.py not available in Hermes Lite")
         module = ast.parse(run_py.read_text(encoding="utf-8"))
 
         run_sync = None
